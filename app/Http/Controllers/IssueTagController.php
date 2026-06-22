@@ -4,17 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Issue;
 use App\Models\Tag;
-use Illuminate\Http\Request;
 
 class IssueTagController extends Controller
 {
     /**
      * Attach a tag to an issue if it isn't already attached, avoiding duplicate pivot rows.
+     * Both issue and tag are resolved straight from the route via model binding.
      */
-    public function attach(Request $request, Issue $issue)
+    public function attach(Issue $issue, Tag $tag)
     {
-        $tag = Tag::findOrFail($request->input('tag_id'));
-
         $alreadyAttached = $issue->tags()->where('tags.id', $tag->id)->exists();
 
         if (! $alreadyAttached) {
