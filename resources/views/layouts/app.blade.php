@@ -40,6 +40,21 @@
                     Tags
                 </a>
             </nav>
+
+            {{-- Pinned to the bottom of the sidebar via margin-top: auto, separated
+                 from the nav links above. --}}
+            <div style="margin-top: auto; padding: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <p style="color: rgba(255, 255, 255, 0.5); font-size: 0.8125rem; margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ auth()->user()->email }}
+                </p>
+
+                <form action="{{ route('logout') }}" method="POST">
+                    @csrf
+                    <button type="submit" style="background: none; border: none; padding: 0; cursor: pointer; color: rgba(255, 255, 255, 0.5); font-size: 0.8125rem; font-family: inherit;">
+                        Log out
+                    </button>
+                </form>
+            </div>
         </aside>
 
         <!-- Main content -->
