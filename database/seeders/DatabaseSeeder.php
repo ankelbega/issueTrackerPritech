@@ -34,10 +34,14 @@ class DatabaseSeeder extends Seeder
         // Create the fixed set of 8 tags (Bug, Feature, Urgent, etc.) from TagFactory::TAGS.
         $tags = Tag::factory()->count(8)->create();
 
-        // Create 5 projects, each with a handful of issues, comments and assignments.
-        Project::factory()
-            ->count(5)
-            ->create()
+        // Create 5 projects owned by specific users: the first 3 belong to admin,
+        // the last 2 belong to user@test.com, so ownership/policy checks have
+        // realistic data to work against right after seeding.
+        $adminProjects = Project::factory()->count(3)->for($admin)->create();
+        $userProjects = Project::factory()->count(2)->for($user)->create();
+
+        // Each project gets a handful of issues, comments and assignments.
+        $adminProjects->concat($userProjects)
             ->each(function (Project $project) use ($tags, $users) {
                 // Each project gets between 4 and 8 issues, tied to this project via for().
                 $issueCount = fake()->numberBetween(4, 8);

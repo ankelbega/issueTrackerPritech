@@ -3,10 +3,25 @@
 @section('title', $project->name)
 
 @section('content')
-    {{-- Project name + "Edit Project" action button --}}
+    {{-- Project name + Edit/Delete actions, visible only to the project's owner.
+         The destroy route itself is still policy-protected regardless of this check. --}}
     <div class="page-header">
         <h1>{{ $project->name }}</h1>
-        <a href="{{ route('projects.edit', $project) }}" class="btn-secondary">Edit Project</a>
+        @can('update', $project)
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="{{ route('projects.edit', $project) }}" class="btn-secondary">Edit Project</a>
+                <form
+                    action="{{ route('projects.destroy', $project) }}"
+                    method="POST"
+                    x-data
+                    @submit="if (! confirm('Delete this project? This cannot be undone.')) $event.preventDefault()"
+                >
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn-danger">Delete Project</button>
+                </form>
+            </div>
+        @endcan
     </div>
 
     {{-- Project details card: description and date range --}}

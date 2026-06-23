@@ -38,6 +38,24 @@
                         {{-- Neutral badge: this is a count, not an "open" status, so it shouldn't borrow that badge's green color. --}}
                         <span class="badge-status-closed">{{ $project->issues_count }} {{ Str::plural('issue', $project->issues_count) }}</span>
                     </div>
+
+                    {{-- Edit/Delete are only visible to the project's owner; the
+                         destroy route itself is still policy-protected regardless. --}}
+                    @can('update', $project)
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                            <a href="{{ route('projects.edit', $project) }}" class="btn-secondary">Edit</a>
+                            <form
+                                action="{{ route('projects.destroy', $project) }}"
+                                method="POST"
+                                x-data
+                                @submit="if (! confirm('Delete this project? This cannot be undone.')) $event.preventDefault()"
+                            >
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn-danger">Delete</button>
+                            </form>
+                        </div>
+                    @endcan
                 </div>
             @endforeach
         </div>

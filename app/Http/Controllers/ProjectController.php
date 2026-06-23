@@ -31,11 +31,14 @@ class ProjectController extends Controller
     }
 
     /**
-     * Store a newly created project.
+     * Store a newly created project, owned by the current user.
      */
     public function store(StoreProjectRequest $request)
     {
-        $project = Project::create($request->validated());
+        $project = Project::create([
+            ...$request->validated(),
+            'user_id' => auth()->id(),
+        ]);
 
         return redirect()
             ->route('projects.show', $project)
@@ -64,18 +67,22 @@ class ProjectController extends Controller
     }
 
     /**
-     * Show the edit project form.
+     * Show the edit project form. Only the project's owner may edit it.
      */
     public function edit(Project $project)
     {
+        $this->authorize('update', $project);
+
         return view('projects.edit', compact('project'));
     }
 
     /**
-     * Update an existing project.
+     * Update an existing project. Only the project's owner may update it.
      */
     public function update(UpdateProjectRequest $request, Project $project)
     {
+        $this->authorize('update', $project);
+
         $project->update($request->validated());
 
         return redirect()
@@ -85,9 +92,12 @@ class ProjectController extends Controller
 
     /**
      * Delete a project (its issues/comments/pivots cascade-delete via FK constraints).
+     * Only the project's owner may delete it.
      */
     public function destroy(Project $project)
     {
+        $this->authorize('delete', $project);
+
         $project->delete();
 
         return redirect()
