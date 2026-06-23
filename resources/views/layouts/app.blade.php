@@ -46,12 +46,10 @@
         <main class="main-content">
             @include('layouts.partials.flash')
 
-            <!-- Generic page title; individual views can still build their own
-                 .page-header (title + action button) inside @section('content'). -->
-            @hasSection('title')
-                <h1>@yield('title')</h1>
-            @endif
-
+            {{-- Every page builds its own <h1> inside @section('content'), usually
+                 paired with an action button via .page-header. @yield('title') only
+                 feeds the <title> tag above — rendering it again here would show
+                 every page's heading twice. --}}
             @yield('content')
         </main>
     </body>

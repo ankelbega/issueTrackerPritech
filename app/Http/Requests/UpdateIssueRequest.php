@@ -22,6 +22,12 @@ class UpdateIssueRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // Project is mandatory and must reference an existing project row.
+            // Without this, reassigning an issue to a different project via the
+            // edit form silently did nothing, since project_id was never validated
+            // and therefore never present in $request->validated().
+            'project_id' => ['required', 'integer', 'exists:projects,id'],
+
             // Title is mandatory and capped at 255 characters.
             'title' => ['required', 'string', 'max:255'],
 

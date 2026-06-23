@@ -35,7 +35,8 @@
                             &ndash;
                             {{ $project->deadline ? $project->deadline->format('M d, Y') : '—' }}
                         </span>
-                        <span class="badge-status-open">{{ $project->issues_count }} issues</span>
+                        {{-- Neutral badge: this is a count, not an "open" status, so it shouldn't borrow that badge's green color. --}}
+                        <span class="badge-status-closed">{{ $project->issues_count }} {{ Str::plural('issue', $project->issues_count) }}</span>
                     </div>
                 </div>
             @endforeach

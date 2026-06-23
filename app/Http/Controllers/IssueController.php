@@ -47,15 +47,11 @@ class IssueController extends Controller
     }
 
     /**
-     * Store a newly created issue. project_id comes from the request input directly
-     * since it isn't part of the StoreIssueRequest's field-level validation rules.
+     * Store a newly created issue.
      */
     public function store(StoreIssueRequest $request)
     {
-        $issue = Issue::create([
-            ...$request->validated(),
-            'project_id' => $request->input('project_id'),
-        ]);
+        $issue = Issue::create($request->validated());
 
         return redirect()
             ->route('issues.show', $issue)

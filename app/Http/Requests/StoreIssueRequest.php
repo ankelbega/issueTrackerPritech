@@ -22,6 +22,9 @@ class StoreIssueRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // Project is mandatory and must reference an existing project row.
+            'project_id' => ['required', 'integer', 'exists:projects,id'],
+
             // Title is mandatory and capped at 255 characters.
             'title' => ['required', 'string', 'max:255'],
 

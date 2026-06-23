@@ -12,6 +12,11 @@
         'body' => $comment->body,
         'created_at' => $comment->created_at->format('M d, Y'),
     ]);
+
+    // URL templates built from the named routes (not hand-typed strings), with a
+    // placeholder swapped out client-side for the actual tag/user id being toggled.
+    $tagActionUrlTemplate = route('issues.tags.attach', ['issue' => $issue->id, 'tag' => '__ID__']);
+    $userActionUrlTemplate = route('issues.users.attach', ['issue' => $issue->id, 'user' => '__ID__']);
 @endphp
 
 @section('content')
@@ -45,17 +50,21 @@
             allTags: @json($tags->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name, 'color' => $tag->color])),
             attachedTags: @json($issue->tags->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name, 'color' => $tag->color])),
             showTagPanel: false,
+            tagError: '',
 
             allUsers: @json($users->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])),
             assignedUsers: @json($issue->users->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])),
             showUserPanel: false,
+            userError: '',
 
             comments: @json($initialComments),
             nextPageUrl: @json($comments->nextPageUrl()),
             loadingMore: false,
+            commentsLoadError: '',
 
             newComment: { author_name: '', body: '' },
             commentErrors: {},
+            commentSubmitError: '',
             commentSuccess: false,
             submittingComment: false,
 
@@ -68,16 +77,24 @@
             },
 
             // Attach/detach a tag via AJAX against issues.tags.attach / issues.tags.detach.
+            // The UI only updates once the server confirms success; on failure (network
+            // error or non-2xx response) the checkbox state is left untouched and an
+            // inline error message is shown instead of silently pretending it worked.
             toggleTag(tag) {
                 const attached = this.isTagAttached(tag.id);
+                this.tagError = '';
 
-                fetch(`{{ url('/issues/'.$issue->id.'/tags') }}/${tag.id}`, {
+                fetch('{{ $tagActionUrlTemplate }}'.replace('__ID__', tag.id), {
                     method: attached ? 'DELETE' : 'POST',
                     headers: { 'X-CSRF-TOKEN': this.csrfToken(), 'Accept': 'application/json' },
-                }).then(() => {
+                }).then(response => {
+                    if (! response.ok) throw new Error('Request failed');
+
                     this.attachedTags = attached
                         ? this.attachedTags.filter(t => t.id !== tag.id)
                         : [...this.attachedTags, tag];
+                }).catch(() => {
+                    this.tagError = `Couldn't update tags. Please try again.`;
                 });
             },
 
@@ -86,16 +103,22 @@
             },
 
             // Assign/unassign a user via AJAX against issues.users.attach / issues.users.detach.
+            // Same fail-safe pattern as toggleTag(): no optimistic update without a 2xx response.
             toggleUser(user) {
                 const assigned = this.isUserAssigned(user.id);
+                this.userError = '';
 
-                fetch(`{{ url('/issues/'.$issue->id.'/users') }}/${user.id}`, {
+                fetch('{{ $userActionUrlTemplate }}'.replace('__ID__', user.id), {
                     method: assigned ? 'DELETE' : 'POST',
                     headers: { 'X-CSRF-TOKEN': this.csrfToken(), 'Accept': 'application/json' },
-                }).then(() => {
+                }).then(response => {
+                    if (! response.ok) throw new Error('Request failed');
+
                     this.assignedUsers = assigned
                         ? this.assignedUsers.filter(u => u.id !== user.id)
                         : [...this.assignedUsers, user];
+                }).catch(() => {
+                    this.userError = `Couldn't update assignees. Please try again.`;
                 });
             },
 
@@ -109,21 +132,32 @@
                 if (! this.nextPageUrl) return;
 
                 this.loadingMore = true;
+                this.commentsLoadError = '';
 
                 fetch(this.nextPageUrl, { headers: { 'Accept': 'application/json' } })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (! response.ok) throw new Error('Request failed');
+                        return response.json();
+                    })
                     .then(json => {
                         this.comments.push(...json.data);
                         this.nextPageUrl = json.next_page_url;
+                    })
+                    .catch(() => {
+                        this.commentsLoadError = `Couldn't load more comments. Please try again.`;
+                    })
+                    .finally(() => {
                         this.loadingMore = false;
                     });
             },
 
-            // Submits the new comment via AJAX, prepends it on success, or surfaces
-            // validation errors inline without an alert box.
+            // Submits the new comment via AJAX, prepends it on success, surfaces
+            // validation errors inline (no alert box), and shows a distinct message
+            // for network/server failures so a failed post is never silently dropped.
             submitComment() {
                 this.submittingComment = true;
                 this.commentErrors = {};
+                this.commentSubmitError = '';
 
                 fetch('{{ route('comments.store', $issue) }}', {
                     method: 'POST',
@@ -134,19 +168,23 @@
                     },
                     body: JSON.stringify(this.newComment),
                 }).then(async (response) => {
-                    this.submittingComment = false;
-
                     if (response.status === 422) {
                         const json = await response.json();
                         this.commentErrors = json.errors;
                         return;
                     }
 
+                    if (! response.ok) throw new Error('Request failed');
+
                     const comment = await response.json();
                     this.comments.unshift(comment);
                     this.newComment = { author_name: '', body: '' };
                     this.commentSuccess = true;
                     setTimeout(() => this.commentSuccess = false, 3000);
+                }).catch(() => {
+                    this.commentSubmitError = `Couldn't post your comment. Please try again.`;
+                }).finally(() => {
+                    this.submittingComment = false;
                 });
             },
         }"
@@ -169,6 +207,9 @@
                 </template>
                 <span x-show="attachedTags.length === 0" style="color: var(--color-muted); font-size: 0.875rem;">No tags attached.</span>
             </div>
+
+            {{-- Visible failure feedback for a failed attach/detach (network or server error) --}}
+            <p class="form-error" x-show="tagError" x-text="tagError" x-cloak></p>
 
             {{-- Dropdown panel: checkbox list of every tag, checked if already attached --}}
             <div
@@ -205,6 +246,9 @@
                 </template>
                 <span x-show="assignedUsers.length === 0" style="color: var(--color-muted); font-size: 0.875rem;">No users assigned.</span>
             </div>
+
+            {{-- Visible failure feedback for a failed assign/unassign (network or server error) --}}
+            <p class="form-error" x-show="userError" x-text="userError" x-cloak></p>
 
             {{-- Dropdown panel: checkbox list of every user, checked if already assigned --}}
             <div
@@ -254,6 +298,9 @@
                 <span x-show="loadingMore">Loading&hellip;</span>
             </button>
 
+            {{-- Visible failure feedback if fetching the next page fails --}}
+            <p class="form-error" x-show="commentsLoadError" x-text="commentsLoadError" x-cloak style="margin-top: -1rem; margin-bottom: 1rem;"></p>
+
             {{-- Add comment form, submitted via AJAX so the page never reloads --}}
             <form @submit.prevent="submitComment()" style="border-top: 1px solid var(--color-border); padding-top: 1.25rem;">
                 <div style="margin-bottom: 1rem;">
@@ -274,6 +321,7 @@
                         <span x-show="submittingComment">Posting&hellip;</span>
                     </button>
                     <span x-show="commentSuccess" x-cloak style="color: #16a34a; font-size: 0.875rem;">Comment added.</span>
+                    <span x-show="commentSubmitError" x-cloak style="color: #dc2626; font-size: 0.875rem;" x-text="commentSubmitError"></span>
                 </div>
             </form>
         </div>
