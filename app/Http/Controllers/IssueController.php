@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateIssueRequest;
 use App\Models\Issue;
 use App\Models\Project;
 use App\Models\Tag;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class IssueController extends Controller
@@ -23,9 +24,14 @@ class IssueController extends Controller
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
             ->when($request->filled('priority'), fn ($query) => $query->where('priority', $request->input('priority')))
             ->when($request->filled('tag_id'), fn ($query) => $query->whereHas('tags', fn ($q) => $q->where('tags.id', $request->input('tag_id'))))
-            ->paginate(15);
+            ->paginate(15)
+            // Keeps ?status=&priority=&tag_id= in the pagination links so filters survive page changes.
+            ->withQueryString();
 
-        return view('issues.index', compact('issues'));
+        // All tags for the filter dropdown.
+        $tags = Tag::orderBy('name')->get();
+
+        return view('issues.index', compact('issues', 'tags'));
     }
 
     /**
@@ -57,18 +63,36 @@ class IssueController extends Controller
     }
 
     /**
-     * Show a single issue with its project, tags, paginated latest comments, and assigned users.
+     * Show a single issue with its project, tags, assigned users, and paginated latest comments.
      */
-    public function show(Issue $issue)
+    public function show(Request $request, Issue $issue)
     {
-        $issue->load([
-            'project',
-            'tags',
-            'comments' => fn ($query) => $query->latest()->paginate(10),
-            'users',
-        ]);
+        $issue->load(['project', 'tags', 'users']);
 
-        return view('issues.show', compact('issue'));
+        // Comments are paginated separately (not via the eager load above) because
+        // paginate() inside a relation closure on a single model silently collapses
+        // back into a plain Collection and loses its pagination metadata.
+        $comments = $issue->comments()->latest()->paginate(10)->withQueryString();
+
+        // The "Load more" button fetches subsequent pages via AJAX; respond with
+        // JSON for that case instead of re-rendering the whole page.
+        if ($request->wantsJson()) {
+            return response()->json([
+                'data' => $comments->map(fn ($comment) => [
+                    'id' => $comment->id,
+                    'author_name' => $comment->author_name,
+                    'body' => $comment->body,
+                    'created_at' => $comment->created_at->format('M d, Y'),
+                ]),
+                'next_page_url' => $comments->nextPageUrl(),
+            ]);
+        }
+
+        // All tags and users for the "manage tags"/"assign users" dropdown panels.
+        $tags = Tag::orderBy('name')->get();
+        $users = User::orderBy('name')->get();
+
+        return view('issues.show', compact('issue', 'comments', 'tags', 'users'));
     }
 
     /**

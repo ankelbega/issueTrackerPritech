@@ -16,6 +16,12 @@
     box-sizing: border-box;
 }
 
+/* Hides Alpine-controlled elements until Alpine has initialized, so dropdown
+   panels and "Load more"/success messages don't flash visible on page load. */
+[x-cloak] {
+    display: none !important;
+}
+
 body {
     margin: 0;
     background-color: var(--color-bg);
