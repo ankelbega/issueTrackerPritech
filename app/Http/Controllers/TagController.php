@@ -8,25 +8,33 @@ use App\Models\Tag;
 class TagController extends Controller
 {
     /**
-     * List all tags alphabetically by name.
+     * List all tags alphabetically by name, with a count of issues using each one
+     * (withCount avoids an N+1 by adding an issues_count column via a subquery).
      */
     public function index()
     {
-        $tags = Tag::orderBy('name')->get();
+        $tags = Tag::withCount('issues')->orderBy('name')->get();
 
         return view('tags.index', compact('tags'));
     }
 
     /**
-     * Create a new tag and return it as JSON for AJAX tag-picker UIs.
+     * Create a new tag. Regular form submissions redirect back with a flash
+     * message; AJAX tag-picker UIs that send Accept: application/json get JSON back.
      */
     public function store(StoreTagRequest $request)
     {
         $tag = Tag::create($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'tag' => $tag,
-        ]);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'tag' => $tag,
+            ]);
+        }
+
+        return redirect()
+            ->back()
+            ->with('success', 'Tag created successfully.');
     }
 }
