@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;
 use App\Models\Project;
+use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
@@ -42,18 +43,24 @@ class ProjectController extends Controller
     }
 
     /**
-     * Show a single project with its issues, each issue's tags, and a comment count per issue.
+     * Show a single project with its issues (optionally filtered by status/priority),
+     * each issue's tags, and a comment count per issue.
      */
-    public function show(Project $project)
+    public function show(Request $request, Project $project)
     {
-        // Eager load issues + their tags in one query each, and add a comments_count
-        // per issue via withCount, so the view never triggers per-issue queries.
-        $project->load([
-            'issues.tags',
-            'issues' => fn ($query) => $query->withCount('comments'),
-        ])->loadCount('issues');
+        // Eager load tags and a comments_count per issue, so the table below never
+        // triggers per-row queries. when() only applies a filter if it was sent.
+        $issues = $project->issues()
+            ->with('tags')
+            ->withCount('comments')
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
+            ->when($request->filled('priority'), fn ($query) => $query->where('priority', $request->input('priority')))
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('projects.show', compact('project'));
+        $project->loadCount('issues');
+
+        return view('projects.show', compact('project', 'issues'));
     }
 
     /**
