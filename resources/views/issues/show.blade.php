@@ -46,30 +46,30 @@
     {{-- Tags + assigned users + comments all share one Alpine scope so toggling a
          tag/user or posting a comment never requires a full page reload. --}}
     <div
-        x-data="{
-            allTags: @json($tags->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name, 'color' => $tag->color])),
-            attachedTags: @json($issue->tags->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name, 'color' => $tag->color])),
+        x-data='{
+            allTags: @json($tags->map(fn ($tag) => ["id" => $tag->id, "name" => $tag->name, "color" => $tag->color])),
+            attachedTags: @json($issue->tags->map(fn ($tag) => ["id" => $tag->id, "name" => $tag->name, "color" => $tag->color])),
             showTagPanel: false,
-            tagError: '',
+            tagError: "",
 
-            allUsers: @json($users->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])),
-            assignedUsers: @json($issue->users->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])),
+            allUsers: @json($users->map(fn ($user) => ["id" => $user->id, "name" => $user->name])),
+            assignedUsers: @json($issue->users->map(fn ($user) => ["id" => $user->id, "name" => $user->name])),
             showUserPanel: false,
-            userError: '',
+            userError: "",
 
             comments: @json($initialComments),
             nextPageUrl: @json($comments->nextPageUrl()),
             loadingMore: false,
-            commentsLoadError: '',
+            commentsLoadError: "",
 
-            newComment: { author_name: '', body: '' },
+            newComment: { author_name: "", body: "" },
             commentErrors: {},
-            commentSubmitError: '',
+            commentSubmitError: "",
             commentSuccess: false,
             submittingComment: false,
 
             csrfToken() {
-                return document.querySelector('meta[name=csrf-token]').content;
+                return document.querySelector("meta[name=csrf-token]").content;
             },
 
             isTagAttached(tagId) {
@@ -82,19 +82,19 @@
             // inline error message is shown instead of silently pretending it worked.
             toggleTag(tag) {
                 const attached = this.isTagAttached(tag.id);
-                this.tagError = '';
+                this.tagError = "";
 
-                fetch('{{ $tagActionUrlTemplate }}'.replace('__ID__', tag.id), {
-                    method: attached ? 'DELETE' : 'POST',
-                    headers: { 'X-CSRF-TOKEN': this.csrfToken(), 'Accept': 'application/json' },
+                fetch("{{ $tagActionUrlTemplate }}".replace("__ID__", tag.id), {
+                    method: attached ? "DELETE" : "POST",
+                    headers: { "X-CSRF-TOKEN": this.csrfToken(), "Accept": "application/json" },
                 }).then(response => {
-                    if (! response.ok) throw new Error('Request failed');
+                    if (! response.ok) throw new Error("Request failed");
 
                     this.attachedTags = attached
                         ? this.attachedTags.filter(t => t.id !== tag.id)
                         : [...this.attachedTags, tag];
                 }).catch(() => {
-                    this.tagError = `Couldn't update tags. Please try again.`;
+                    this.tagError = "Could not update tags. Please try again.";
                 });
             },
 
@@ -106,24 +106,24 @@
             // Same fail-safe pattern as toggleTag(): no optimistic update without a 2xx response.
             toggleUser(user) {
                 const assigned = this.isUserAssigned(user.id);
-                this.userError = '';
+                this.userError = "";
 
-                fetch('{{ $userActionUrlTemplate }}'.replace('__ID__', user.id), {
-                    method: assigned ? 'DELETE' : 'POST',
-                    headers: { 'X-CSRF-TOKEN': this.csrfToken(), 'Accept': 'application/json' },
+                fetch("{{ $userActionUrlTemplate }}".replace("__ID__", user.id), {
+                    method: assigned ? "DELETE" : "POST",
+                    headers: { "X-CSRF-TOKEN": this.csrfToken(), "Accept": "application/json" },
                 }).then(response => {
-                    if (! response.ok) throw new Error('Request failed');
+                    if (! response.ok) throw new Error("Request failed");
 
                     this.assignedUsers = assigned
                         ? this.assignedUsers.filter(u => u.id !== user.id)
                         : [...this.assignedUsers, user];
                 }).catch(() => {
-                    this.userError = `Couldn't update assignees. Please try again.`;
+                    this.userError = "Could not update assignees. Please try again.";
                 });
             },
 
             initials(name) {
-                return name.split(' ').map(part => part[0]).join('').toUpperCase().slice(0, 2);
+                return name.split(" ").map(part => part[0]).join("").toUpperCase().slice(0, 2);
             },
 
             // Fetches the next page of comments as JSON (same route, Accept: application/json)
@@ -132,11 +132,11 @@
                 if (! this.nextPageUrl) return;
 
                 this.loadingMore = true;
-                this.commentsLoadError = '';
+                this.commentsLoadError = "";
 
-                fetch(this.nextPageUrl, { headers: { 'Accept': 'application/json' } })
+                fetch(this.nextPageUrl, { headers: { "Accept": "application/json" } })
                     .then(response => {
-                        if (! response.ok) throw new Error('Request failed');
+                        if (! response.ok) throw new Error("Request failed");
                         return response.json();
                     })
                     .then(json => {
@@ -144,7 +144,7 @@
                         this.nextPageUrl = json.next_page_url;
                     })
                     .catch(() => {
-                        this.commentsLoadError = `Couldn't load more comments. Please try again.`;
+                        this.commentsLoadError = "Could not load more comments. Please try again.";
                     })
                     .finally(() => {
                         this.loadingMore = false;
@@ -157,14 +157,14 @@
             submitComment() {
                 this.submittingComment = true;
                 this.commentErrors = {};
-                this.commentSubmitError = '';
+                this.commentSubmitError = "";
 
-                fetch('{{ route('comments.store', $issue) }}', {
-                    method: 'POST',
+                fetch("{{ route('comments.store', $issue) }}", {
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': this.csrfToken(),
-                        'Accept': 'application/json',
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": this.csrfToken(),
+                        "Accept": "application/json",
                     },
                     body: JSON.stringify(this.newComment),
                 }).then(async (response) => {
@@ -174,20 +174,20 @@
                         return;
                     }
 
-                    if (! response.ok) throw new Error('Request failed');
+                    if (! response.ok) throw new Error("Request failed");
 
                     const comment = await response.json();
                     this.comments.unshift(comment);
-                    this.newComment = { author_name: '', body: '' };
+                    this.newComment = { author_name: "", body: "" };
                     this.commentSuccess = true;
                     setTimeout(() => this.commentSuccess = false, 3000);
                 }).catch(() => {
-                    this.commentSubmitError = `Couldn't post your comment. Please try again.`;
+                    this.commentSubmitError = "Could not post your comment. Please try again.";
                 }).finally(() => {
                     this.submittingComment = false;
                 });
             },
-        }"
+        }'
     >
         {{-- Tags section --}}
         <div class="card" style="margin-bottom: 1.5rem; position: relative;">
