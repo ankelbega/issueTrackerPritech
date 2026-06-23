@@ -5,32 +5,54 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>@hasSection('title')@yield('title') - @endif{{ config('app.name', 'Issue Tracker') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <!-- Inter font -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <!-- Compiled Tailwind (still used by the untouched Breeze auth/profile partials) -->
+        @vite(['resources/css/app.css'])
+
+        <!-- Design system -->
+        <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+
+        <!-- Alpine.js for lightweight interactivity (dropdowns, dismissible flashes, etc.) -->
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
-            @include('layouts.navigation')
+    <body>
+        <!-- Sidebar navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">Issue Tracker</div>
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
+            <nav class="sidebar-nav">
+                <a href="{{ route('projects.index') }}"
+                   class="sidebar-link {{ request()->routeIs('projects.*') ? 'active' : '' }}">
+                    Projects
+                </a>
+                <a href="{{ route('issues.index') }}"
+                   class="sidebar-link {{ request()->routeIs('issues.*') ? 'active' : '' }}">
+                    Issues
+                </a>
+                <a href="{{ route('tags.index') }}"
+                   class="sidebar-link {{ request()->routeIs('tags.*') ? 'active' : '' }}">
+                    Tags
+                </a>
+            </nav>
+        </aside>
 
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
-        </div>
+        <!-- Main content -->
+        <main class="main-content">
+            @include('layouts.partials.flash')
+
+            <!-- Generic page title; individual views can still build their own
+                 .page-header (title + action button) inside @section('content'). -->
+            @hasSection('title')
+                <h1>@yield('title')</h1>
+            @endif
+
+            @yield('content')
+        </main>
     </body>
 </html>
