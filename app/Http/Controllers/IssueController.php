@@ -18,7 +18,7 @@ class IssueController extends Controller
 {
     /**
      * Display a paginated, filterable list of every issue across all
-     * projects, with each issue's parent project and tags eager loaded.
+     * projects, with each issue's parent project eager loaded.
      *
      * @param  Request  $request  Used to read the optional ?status=, ?priority=, and ?tag_id= filter query params.
      * @return \Illuminate\View\View
@@ -26,9 +26,10 @@ class IssueController extends Controller
     public function index(Request $request)
     {
         $issues = Issue::query()
-            // Loads the parent project and tags for every matching issue in two
-            // extra queries total, instead of one query per issue per relation.
-            ->with(['project', 'tags'])
+            // Loads the parent project for every matching issue in one extra
+            // query instead of one query per issue. Tags aren't eager loaded
+            // here since issues/index.blade.php doesn't display them.
+            ->with('project')
             // when() only applies the where clause if the query param was actually sent.
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
             ->when($request->filled('priority'), fn ($query) => $query->where('priority', $request->input('priority')))
@@ -58,10 +59,9 @@ class IssueController extends Controller
     public function create(Request $request)
     {
         $projects = Project::all(); // Every project, for the "Project" select dropdown.
-        $tags = Tag::all(); // Every tag, available for the form (not currently used on create, kept for parity with edit).
         $selectedProjectId = $request->query('project_id'); // Pre-selects this project in the dropdown if present.
 
-        return view('issues.create', compact('projects', 'tags', 'selectedProjectId'));
+        return view('issues.create', compact('projects', 'selectedProjectId'));
     }
 
     /**
@@ -128,7 +128,7 @@ class IssueController extends Controller
 
     /**
      * Show the "edit issue" form, pre-filled with the issue's current data
-     * and with every project/tag available for re-assignment.
+     * and with every project available for re-assignment.
      *
      * @param  Issue  $issue  Resolved via route model binding.
      * @return \Illuminate\View\View
@@ -136,9 +136,8 @@ class IssueController extends Controller
     public function edit(Issue $issue)
     {
         $projects = Project::all(); // Lets the user move this issue to a different project.
-        $tags = Tag::all(); // Kept for parity with create(); the tag list itself is managed from the show page, not this form.
 
-        return view('issues.edit', compact('issue', 'projects', 'tags'));
+        return view('issues.edit', compact('issue', 'projects'));
     }
 
     /**

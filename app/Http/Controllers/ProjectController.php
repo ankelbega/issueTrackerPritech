@@ -69,7 +69,7 @@ class ProjectController extends Controller
 
     /**
      * Show a single project, including its issues (optionally filtered by
-     * status/priority), each issue's tags, and a comment count per issue.
+     * status/priority) and each issue's tags.
      *
      * @param  Request  $request  Used to read the optional ?status= and ?priority= filter query params.
      * @param  Project  $project  Resolved automatically by Laravel's route model binding from the {project} URL segment.
@@ -77,11 +77,11 @@ class ProjectController extends Controller
      */
     public function show(Request $request, Project $project)
     {
-        // Eager load tags and a comments_count per issue, so the table below never
-        // triggers per-row queries. when() only applies a filter if it was sent.
+        // Eager load tags for the issues table below, so it never triggers a
+        // per-row query. when() only applies a filter if it was sent. No
+        // comment count is loaded here since projects/show.blade.php doesn't display one.
         $issues = $project->issues()
             ->with('tags') // Loads every matching issue's tags in one extra query instead of one query per issue.
-            ->withCount('comments') // Adds a comments_count column via a subquery, again avoiding per-issue queries.
             // Only adds a WHERE status = ... clause if the status filter was actually submitted.
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
             // Only adds a WHERE priority = ... clause if the priority filter was actually submitted.
