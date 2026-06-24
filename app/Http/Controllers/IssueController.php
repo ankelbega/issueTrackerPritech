@@ -17,10 +17,18 @@ use Illuminate\Http\Request;
 class IssueController extends Controller
 {
     /**
-     * Display a paginated, filterable list of every issue across all
-     * projects, with each issue's parent project eager loaded.
+     * Display a paginated, filterable, searchable list of every issue
+     * across all projects, with each issue's parent project eager loaded.
      *
-     * @param  Request  $request  Used to read the optional ?status=, ?priority=, and ?tag_id= filter query params.
+     * The optional ?search= query param does a case-insensitive partial
+     * match against both the issue's title and its description, combined
+     * with the existing ?status=, ?priority=, and ?tag_id= filters. When
+     * the request carries an X-Requested-With: XMLHttpRequest header (sent
+     * by the search box's debounced fetch() call in issues/index.blade.php),
+     * only the results table partial is returned instead of the full page,
+     * so the JS can swap it in without a reload.
+     *
+     * @param  Request  $request  Used to read the optional ?status=, ?priority=, ?tag_id=, and ?search= filter query params, and to detect AJAX requests.
      * @return \Illuminate\View\View
      */
     public function index(Request $request)
@@ -36,10 +44,36 @@ class IssueController extends Controller
             // whereHas filters to only issues that have at least one tag matching
             // the selected tag_id, via a sub-query against the issue_tag pivot table.
             ->when($request->filled('tag_id'), fn ($query) => $query->whereHas('tags', fn ($q) => $q->where('tags.id', $request->input('tag_id'))))
+            // when() only adds the search clause at all if ?search= was actually
+            // submitted (a falsy/empty value skips this entirely, so a blank
+            // search box doesn't add a no-op WHERE clause to the query).
+            ->when($request->search, fn ($q) => $q->where(
+                // The inner where(fn ($q) => ...) groups both LIKE checks inside
+                // their own parentheses in the generated SQL ("AND (title LIKE
+                // ... OR description LIKE ...)"), so this OR doesn't accidentally
+                // swallow the status/priority/tag_id AND conditions built above.
+                fn ($q) => $q->where('title', 'like', "%{$request->search}%")
+                    // orWhere matches issues whose description (not just title)
+                    // contains the search term, so a search hits either field.
+                    ->orWhere('description', 'like', "%{$request->search}%")
+            ))
             ->paginate(15)
-            // Keeps the current ?status=&priority=&tag_id= query string attached to
-            // the pagination links, so paging through results doesn't lose the filters.
+            // Keeps the current ?status=&priority=&tag_id=&search= query string
+            // attached to the pagination links, so paging through results
+            // doesn't lose any of the active filters or the search term.
             ->withQueryString();
+
+        // ajax() is true only when the request carries the X-Requested-With:
+        // XMLHttpRequest header. Browsers never add that header on their own —
+        // it's set explicitly by the search box's fetch() call below — so a
+        // normal full-page visit to this route always falls through to the
+        // regular branch further down instead.
+        if ($request->ajax()) {
+            // Returns only the results table/empty-state/pagination markup
+            // (no sidebar, no filter bar) so the JS can drop it straight into
+            // the results container without re-rendering the whole page.
+            return view('issues.partials.table', compact('issues'));
+        }
 
         // All tags for the filter dropdown (so the user can pick any tag, not just
         // ones already represented in the current filtered/paginated results).
