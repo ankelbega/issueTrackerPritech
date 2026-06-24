@@ -1,66 +1,93 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Issue Tracker
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A multi-project issue tracking application built with Laravel. It lets teams organize work into projects, break that work down into issues with a status and priority lifecycle, categorize issues with colored tags, assign issues to team members, and discuss progress through comments — all without ever leaving the page, thanks to AJAX-powered interactions for tagging, assignment, and commenting.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Project management (create, edit, delete, view)
+- Project ownership — only the creator can edit or delete their project
+- Issue tracking with status (Open, In Progress, Closed) and priority (Low, Medium, High)
+- Filter issues by status, priority, and tag
+- Tag management — create tags with custom colors, attach/detach tags to issues via AJAX (no page reload)
+- Comments — add and load comments via AJAX with pagination
+- User assignment — assign/unassign team members to issues via AJAX
+- Authorization — policy-based ownership (only project owners can edit/delete their project)
+- Full form validation with inline error messages
+- Flash messages for all create/update/delete actions
+- Clean UI built with Blade templates and Alpine.js
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Tech Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Laravel 11
+- PHP 8.5
+- SQLite
+- Laravel Breeze (Blade stack) for authentication
+- Alpine.js for lightweight interactivity
+- Custom CSS (no Tailwind in the final UI)
+- Vite for asset bundling
 
-## Learning Laravel
+## Requirements
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- PHP >= 8.2
+- Composer
+- Node.js & npm
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Installation
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. Clone the repository: `git clone https://github.com/ankelbega/issueTrackerPritech.git`
+2. `cd issueTrackerPritech`
+3. `composer install`
+4. `npm install && npm run build`
+5. `cp .env.example .env`
+6. `php artisan key:generate`
+7. Create the SQLite file: `touch database/database.sqlite` (Windows: `type nul > database\database.sqlite`)
+8. `php artisan migrate`
+9. `php artisan db:seed`
+10. `php artisan serve`
+11. Visit http://localhost:8000
 
-## Laravel Sponsors
+## Demo Credentials
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+| Role          | Email           | Password |
+|---------------|-----------------|----------|
+| Admin user    | admin@test.com  | password |
+| Regular user  | user@test.com   | password |
 
-### Premium Partners
+Note: admin@test.com owns 3 projects, user@test.com owns 2 projects. Each user can only edit/delete their own projects.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## Database Schema
 
-## Contributing
+- `projects` (id, name, description, start_date, deadline, user_id, timestamps)
+- `issues` (id, project_id, title, description, status, priority, due_date, timestamps)
+- `tags` (id, name, color, timestamps)
+- `comments` (id, issue_id, author_name, body, timestamps)
+- `issue_tag` — pivot (issue_id, tag_id)
+- `issue_user` — pivot (issue_id, user_id)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Project Structure
 
-## Code of Conduct
+- `app/Http/Controllers` — resource controllers for each entity
+- `app/Http/Requests` — form request validation classes
+- `app/Models` — Eloquent models with relationships
+- `app/Policies` — ProjectPolicy for ownership authorization
+- `database/migrations` — all table migrations
+- `database/seeders` — DatabaseSeeder with demo data
+- `resources/views` — Blade templates organized by entity
+- `public/css/app.css` — custom design system
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Key Implementation Notes
 
-## Security Vulnerabilities
+- All routes protected by auth middleware
+- Eager loading used throughout to prevent N+1 queries
+- AJAX interactions use fetch() with proper error handling and inline error messages
+- Alpine.js x-data uses single-quote delimiters to safely wrap Laravel @json() output
+- ProjectPolicy enforces ownership-based authorization
+- Foreign key indexes added manually (SQLite does not auto-index foreign keys)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Git History
 
-## License
+The project was built with logical commits, one per feature phase, following a structured development workflow.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+Built as a technical assessment for PRITECH.
