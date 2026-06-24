@@ -90,4 +90,4 @@ The project was built with logical commits, one per feature phase, following a s
 
 ---
 
-Built as a technical assessment for PRITECH.
+Built as a technical assessment.
