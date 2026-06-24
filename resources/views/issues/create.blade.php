@@ -8,6 +8,7 @@
     </a>
 
     <div class="card">
+        {{-- Submits to IssueController::store(), validated by StoreIssueRequest. --}}
         <form action="{{ route('issues.store') }}" method="POST">
             @csrf
 
@@ -15,8 +16,14 @@
                 <label for="project_id" class="form-label">Project</label>
                 <select name="project_id" id="project_id" class="form-input" required>
                     <option value="">Select a project&hellip;</option>
+                    {{-- $projects is the full project list passed from
+                         IssueController::create(), so any project can be chosen. --}}
                     @foreach ($projects as $project)
                         {{-- Pre-select the project passed via ?project_id=, falling back to old() on validation failure --}}
+                        {{-- old('project_id', $selectedProjectId): if the form was just
+                             resubmitted after a validation error, use what the user
+                             picked; otherwise fall back to the ?project_id= query
+                             param (set when arriving here via a project's "New Issue" button). --}}
                         <option value="{{ $project->id }}" @selected((string) old('project_id', $selectedProjectId) === (string) $project->id)>
                             {{ $project->name }}
                         </option>
@@ -46,6 +53,8 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;">
                 <div>
                     <label for="status" class="form-label">Status</label>
+                    {{-- Defaults to "open" (via old('status', 'open')) since that's
+                         the sensible starting state for a brand-new issue. --}}
                     <select name="status" id="status" class="form-input" required>
                         <option value="open" @selected(old('status', 'open') === 'open')>Open</option>
                         <option value="in_progress" @selected(old('status') === 'in_progress')>In Progress</option>
@@ -58,6 +67,8 @@
 
                 <div>
                     <label for="priority" class="form-label">Priority</label>
+                    {{-- Defaults to "medium", matching the issues table's own
+                         column default for consistency. --}}
                     <select name="priority" id="priority" class="form-input" required>
                         <option value="low" @selected(old('priority') === 'low')>Low</option>
                         <option value="medium" @selected(old('priority', 'medium') === 'medium')>Medium</option>

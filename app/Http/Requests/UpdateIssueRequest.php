@@ -4,10 +4,19 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates the data submitted when editing an existing issue, via
+ * IssueController::update(). The rules intentionally mirror
+ * StoreIssueRequest exactly, since editing an issue should be held to the
+ * same data-quality standard as creating one.
+ */
 class UpdateIssueRequest extends FormRequest
 {
     /**
-     * Anyone hitting this endpoint is allowed to submit the request.
+     * Determine if the user is authorized to make this request.
+     *
+     * Anyone hitting this endpoint is allowed to submit the request — issue
+     * editing has no ownership restriction in this app.
      */
     public function authorize(): bool
     {

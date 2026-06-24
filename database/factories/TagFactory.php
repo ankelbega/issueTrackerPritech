@@ -25,18 +25,22 @@ class TagFactory extends Factory
     ];
 
     /**
-     * Define the model's default state.
+     * Define the model's default state: the fake attribute values used
+     * whenever Tag::factory()->create()/make() is called without
+     * overriding a given field.
      *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
         // Pick a name from the fixed set without repeating one already used.
+        // fake()->unique() throws once every name has been used, which is why
+        // the seeder only ever creates exactly 8 tags (one per fixed name).
         $name = fake()->unique()->randomElement(array_keys(self::TAGS));
 
         return [
             'name' => $name,
-            'color' => self::TAGS[$name],
+            'color' => self::TAGS[$name], // Look up this name's matching hex color from the fixed map above.
         ];
     }
 }

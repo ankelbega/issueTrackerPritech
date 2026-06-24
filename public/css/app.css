@@ -4,14 +4,17 @@
    stays consistent. Change a value here and it ripples through the app.
    ========================================================================== */
 :root {
-    --color-bg: #F8F7F4;
-    --color-sidebar: #1C1C1E;
-    --color-accent: #4F6EF7;
-    --color-text: #2D2D2D;
-    --color-muted: #6B7280;
-    --color-border: #E5E3DE;
+    --color-bg: #F8F7F4;        /* Warm off-white used as the page background. */
+    --color-sidebar: #1C1C1E;   /* Near-black background for the fixed sidebar. */
+    --color-accent: #4F6EF7;    /* Calm blue used for primary buttons, links, focus rings, active nav state. */
+    --color-text: #2D2D2D;      /* Default body/heading text color. */
+    --color-muted: #6B7280;     /* Secondary text color (timestamps, helper text, labels). */
+    --color-border: #E5E3DE;    /* Subtle border color used on cards, inputs, and table dividers. */
 }
 
+/* Makes width/height calculations include padding and border on every
+   element, so adding padding never unexpectedly enlarges a box beyond the
+   size you set. */
 * {
     box-sizing: border-box;
 }
@@ -22,6 +25,9 @@
     display: none !important;
 }
 
+/* Global page defaults: remove the browser's default body margin, apply the
+   warm background and default text color, and switch the whole app to the
+   Inter font at normal (400) weight. */
 body {
     margin: 0;
     background-color: var(--color-bg);
@@ -30,11 +36,17 @@ body {
     font-weight: 400;
 }
 
+/* All headings use the semibold (600) weight specified by the design system,
+   and have their default browser margin removed so spacing is controlled
+   explicitly by surrounding layout (e.g. .page-header) instead. */
 h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
     margin: 0;
 }
 
+/* Links inherit their surrounding text color (instead of the browser's
+   default blue) and never show an underline, so they blend into sidebar
+   links, card titles, etc. and only stand out via color/weight choices. */
 a {
     color: inherit;
     text-decoration: none;
@@ -45,6 +57,10 @@ a {
    Fixed, full-height, 240px wide, dark background. Holds the logo/app name
    and the primary nav links (Projects, Issues, Tags).
    ========================================================================== */
+
+/* The dark sidebar shell itself: pinned to the top-left corner, spans the
+   full viewport height, and lays out its children (logo, nav, footer) in a
+   vertical column. */
 .sidebar {
     position: fixed;
     top: 0;
@@ -57,6 +73,8 @@ a {
     padding: 1.5rem 1rem;
 }
 
+/* The "Issue Tracker" app name shown at the top of the sidebar, in white so
+   it's readable against the dark background. */
 .sidebar-logo {
     color: #ffffff;
     font-size: 1.125rem;
@@ -64,12 +82,17 @@ a {
     padding: 0 0.75rem 1.5rem;
 }
 
+/* Wraps the Projects/Issues/Tags links in a vertical stack with a small gap
+   between each, separate from the logo above and the footer below. */
 .sidebar-nav {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
 }
 
+/* A single sidebar navigation link: semi-transparent white text by default
+   (so it doesn't compete visually with the active link), rounded corners,
+   and a smooth color/background transition for hover/active state changes. */
 .sidebar-link {
     display: block;
     padding: 0.625rem 0.75rem;
@@ -80,6 +103,8 @@ a {
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 
+/* On hover, a faint white overlay and fully opaque text give subtle feedback
+   without being as visually loud as the active state below. */
 .sidebar-link:hover {
     background-color: rgba(255, 255, 255, 0.06);
     color: #ffffff;
@@ -95,6 +120,10 @@ a {
    Main content area
    Offset by the sidebar's width, capped width for readability.
    ========================================================================== */
+
+/* Pushes all page content to the right of the fixed sidebar, adds breathing
+   room around the edges, and caps the line length at 1100px so text-heavy
+   pages stay easy to read on wide screens. */
 .main-content {
     margin-left: 240px;
     padding: 2rem;
@@ -109,6 +138,8 @@ a {
     margin-bottom: 1.5rem;
 }
 
+/* Slightly larger heading size specifically when an <h1> sits inside a
+   .page-header, distinguishing page titles from card/section sub-headings. */
 .page-header h1 {
     font-size: 1.5rem;
 }
@@ -117,6 +148,10 @@ a {
    Cards
    White surface used for list rows, panels, and form containers.
    ========================================================================== */
+
+/* The base "panel" look used throughout the app: white background to stand
+   out against the warm off-white page background, rounded corners, a
+   subtle drop shadow for depth, and consistent internal padding. */
 .card {
     background-color: #ffffff;
     border-radius: 10px;
@@ -129,6 +164,12 @@ a {
    Small, clean buttons with no uppercase transform. Primary uses the accent
    color; secondary is a neutral outline; danger is for destructive actions.
    ========================================================================== */
+
+/* Shared layout/typography rules for every button variant: centers their
+   label (and any icon) both horizontally and vertically, consistent
+   padding/rounding/font sizing, a pointer cursor, and a smooth color
+   transition for hover states. text-transform: none overrides any
+   browser/UA default that might otherwise uppercase button text. */
 .btn-primary,
 .btn-secondary,
 .btn-danger {
@@ -146,31 +187,41 @@ a {
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
+/* Primary button: solid accent-blue background with white text. Used for
+   the main call-to-action on a page (e.g. "New Project", "Create Issue"). */
 .btn-primary {
     background-color: var(--color-accent);
     color: #ffffff;
 }
 
+/* Slightly darker blue on hover, giving clear pressed/hover feedback. */
 .btn-primary:hover {
     background-color: #3d5ce0;
 }
 
+/* Secondary button: white background with a bordered, neutral look. Used
+   for less prominent actions like "Edit" or "View". */
 .btn-secondary {
     background-color: #ffffff;
     color: var(--color-text);
     border-color: var(--color-border);
 }
 
+/* On hover, fills with the page's background color for a gentle highlight. */
 .btn-secondary:hover {
     background-color: var(--color-bg);
 }
 
+/* Danger button: soft red background/border/text, used for destructive
+   actions like "Delete Project" — red enough to signal caution without
+   being as jarring as a fully saturated red button. */
 .btn-danger {
     background-color: #fef2f2;
     color: #dc2626;
     border-color: #fecaca;
 }
 
+/* Slightly deeper red on hover for feedback. */
 .btn-danger:hover {
     background-color: #fee2e2;
 }
@@ -179,6 +230,10 @@ a {
    Status badges
    Small pill labels reflecting an issue's status enum value.
    ========================================================================== */
+
+/* Shared pill shape/typography for every status and priority badge: a fully
+   rounded (pill-shaped) background, small bold-ish text, and no line
+   wrapping so the label never breaks awkwardly inside a table cell. */
 .badge-status-open,
 .badge-status-in_progress,
 .badge-status-closed,
@@ -193,16 +248,19 @@ a {
     white-space: nowrap;
 }
 
+/* "Open" status: green, signaling an issue that's new/active and not yet started or finished. */
 .badge-status-open {
     background-color: #dcfce7;
     color: #16a34a;
 }
 
+/* "In Progress" status: yellow, signaling active work is underway. */
 .badge-status-in_progress {
     background-color: #fef9c3;
     color: #ca8a04;
 }
 
+/* "Closed" status: neutral gray, signaling the issue is finished/inactive. */
 .badge-status-closed {
     background-color: #f3f4f6;
     color: #6b7280;
@@ -212,16 +270,20 @@ a {
    Priority badges
    Small pill labels reflecting an issue's priority enum value.
    ========================================================================== */
+
+/* "Low" priority: soft green, the calmest of the three priority colors. */
 .badge-priority-low {
     background-color: #f0fdf4;
     color: #15803d;
 }
 
+/* "Medium" priority: amber/orange, signaling moderate urgency. */
 .badge-priority-medium {
     background-color: #fffbeb;
     color: #b45309;
 }
 
+/* "High" priority: red, matching the danger button color to signal urgency. */
 .badge-priority-high {
     background-color: #fef2f2;
     color: #dc2626;
@@ -231,6 +293,10 @@ a {
    Forms
    Inputs, labels and error text shared by every create/edit form.
    ========================================================================== */
+
+/* Label sitting above a form field: block-level so it always sits on its
+   own line, small gap before the input below it, medium-weight text per
+   the design system's "small labels" rule. */
 .form-label {
     display: block;
     margin-bottom: 0.375rem;
@@ -239,6 +305,10 @@ a {
     color: var(--color-text);
 }
 
+/* Base look for every text input, textarea, and select in the app: full
+   width of its container, comfortable padding, a subtle border matching
+   the design system's border color, rounded corners, and a smooth
+   transition into the focus state defined below. */
 .form-input {
     width: 100%;
     padding: 0.5rem 0.75rem;
@@ -251,12 +321,17 @@ a {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* When a form-input is focused: removes the browser's default focus
+   outline and replaces it with an accent-colored border plus a soft glow
+   ring, giving clear, on-brand keyboard/click focus feedback. */
 .form-input:focus {
     outline: none;
     border-color: var(--color-accent);
     box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.15);
 }
 
+/* Validation error text shown beneath a field: small, red, with a little
+   top margin to separate it from the input above. */
 .form-error {
     margin-top: 0.375rem;
     font-size: 0.8125rem;
@@ -267,6 +342,10 @@ a {
    Flash messages
    Dismissible banners for session 'success' and 'error' messages.
    ========================================================================== */
+
+/* Shared banner shape: a rounded, padded bar that places its message text
+   and dismiss ("x") button on opposite ends via space-between, with some
+   bottom margin so it doesn't crowd the content right below it. */
 .flash-banner {
     display: flex;
     align-items: center;
@@ -279,16 +358,21 @@ a {
     font-weight: 500;
 }
 
+/* Success variant: green background/text, shown after a create/update/delete succeeds. */
 .flash-success {
     background-color: #dcfce7;
     color: #16a34a;
 }
 
+/* Error variant: red background/text, shown when session('error') is set. */
 .flash-error {
     background-color: #fef2f2;
     color: #dc2626;
 }
 
+/* The small "×" dismiss button inside a flash banner: no default button
+   styling, inherits the banner's text color, and starts semi-transparent
+   so it doesn't compete with the message text. */
 .flash-dismiss {
     background: none;
     border: none;
@@ -299,6 +383,7 @@ a {
     opacity: 0.6;
 }
 
+/* Fully opaque on hover, signaling it's interactive. */
 .flash-dismiss:hover {
     opacity: 1;
 }

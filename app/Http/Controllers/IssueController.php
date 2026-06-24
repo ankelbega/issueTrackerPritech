@@ -10,47 +10,70 @@ use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Http\Request;
 
+/**
+ * Handles all CRUD actions for issues: listing/filtering, creating,
+ * viewing (including its tags/comments/assignees), editing, and deleting.
+ */
 class IssueController extends Controller
 {
     /**
-     * List issues, optionally filtered by status, priority, or tag, eager loading
-     * the parent project and tags so the view never re-queries per row.
+     * Display a paginated, filterable list of every issue across all
+     * projects, with each issue's parent project and tags eager loaded.
+     *
+     * @param  Request  $request  Used to read the optional ?status=, ?priority=, and ?tag_id= filter query params.
+     * @return \Illuminate\View\View
      */
     public function index(Request $request)
     {
         $issues = Issue::query()
+            // Loads the parent project and tags for every matching issue in two
+            // extra queries total, instead of one query per issue per relation.
             ->with(['project', 'tags'])
             // when() only applies the where clause if the query param was actually sent.
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
             ->when($request->filled('priority'), fn ($query) => $query->where('priority', $request->input('priority')))
+            // whereHas filters to only issues that have at least one tag matching
+            // the selected tag_id, via a sub-query against the issue_tag pivot table.
             ->when($request->filled('tag_id'), fn ($query) => $query->whereHas('tags', fn ($q) => $q->where('tags.id', $request->input('tag_id'))))
             ->paginate(15)
-            // Keeps ?status=&priority=&tag_id= in the pagination links so filters survive page changes.
+            // Keeps the current ?status=&priority=&tag_id= query string attached to
+            // the pagination links, so paging through results doesn't lose the filters.
             ->withQueryString();
 
-        // All tags for the filter dropdown.
+        // All tags for the filter dropdown (so the user can pick any tag, not just
+        // ones already represented in the current filtered/paginated results).
         $tags = Tag::orderBy('name')->get();
 
         return view('issues.index', compact('issues', 'tags'));
     }
 
     /**
-     * Show the create issue form, optionally pre-selecting a project via ?project_id=.
+     * Show the blank "create issue" form, optionally pre-selecting a
+     * project if the request arrived with a ?project_id= query parameter
+     * (e.g. clicking "New Issue" from a project's page).
+     *
+     * @param  Request  $request  Used to read the optional ?project_id= query param.
+     * @return \Illuminate\View\View
      */
     public function create(Request $request)
     {
-        $projects = Project::all();
-        $tags = Tag::all();
-        $selectedProjectId = $request->query('project_id');
+        $projects = Project::all(); // Every project, for the "Project" select dropdown.
+        $tags = Tag::all(); // Every tag, available for the form (not currently used on create, kept for parity with edit).
+        $selectedProjectId = $request->query('project_id'); // Pre-selects this project in the dropdown if present.
 
         return view('issues.create', compact('projects', 'tags', 'selectedProjectId'));
     }
 
     /**
-     * Store a newly created issue.
+     * Validate and persist a new issue.
+     *
+     * @param  StoreIssueRequest  $request  Validates project_id/title/description/status/priority/due_date before this method runs.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(StoreIssueRequest $request)
     {
+        // $request->validated() includes project_id since it's part of
+        // StoreIssueRequest's rules, so no extra merging is needed here.
         $issue = Issue::create($request->validated());
 
         return redirect()
@@ -59,10 +82,18 @@ class IssueController extends Controller
     }
 
     /**
-     * Show a single issue with its project, tags, assigned users, and paginated latest comments.
+     * Show a single issue with its project, tags, assigned users, and a
+     * paginated list of its most recent comments. Also serves as a JSON
+     * endpoint for the "Load more" comments button on this same page.
+     *
+     * @param  Request  $request  Used to detect AJAX/JSON requests (for "Load more") and to read the ?page= param the paginator uses.
+     * @param  Issue  $issue  Resolved automatically via route model binding from the {issue} URL segment.
+     * @return \Illuminate\View\View|\Illuminate\Http\JsonResponse
      */
     public function show(Request $request, Issue $issue)
     {
+        // Loads the parent project, attached tags, and assigned users in three
+        // extra queries total, so the view never triggers per-relation queries.
         $issue->load(['project', 'tags', 'users']);
 
         // Comments are paginated separately (not via the eager load above) because
@@ -74,17 +105,21 @@ class IssueController extends Controller
         // JSON for that case instead of re-rendering the whole page.
         if ($request->wantsJson()) {
             return response()->json([
+                // Reshape each comment into just the fields the frontend needs,
+                // with created_at pre-formatted so the JS doesn't need a date library.
                 'data' => $comments->map(fn ($comment) => [
                     'id' => $comment->id,
                     'author_name' => $comment->author_name,
                     'body' => $comment->body,
                     'created_at' => $comment->created_at->format('M d, Y'),
                 ]),
+                // Tells the frontend whether there's another page to fetch (null if not).
                 'next_page_url' => $comments->nextPageUrl(),
             ]);
         }
 
-        // All tags and users for the "manage tags"/"assign users" dropdown panels.
+        // All tags and users for the "manage tags"/"assign users" dropdown panels
+        // (the full lists, so the user can attach/assign ones not yet attached).
         $tags = Tag::orderBy('name')->get();
         $users = User::orderBy('name')->get();
 
@@ -92,18 +127,26 @@ class IssueController extends Controller
     }
 
     /**
-     * Show the edit issue form, with all projects and tags available for re-assignment.
+     * Show the "edit issue" form, pre-filled with the issue's current data
+     * and with every project/tag available for re-assignment.
+     *
+     * @param  Issue  $issue  Resolved via route model binding.
+     * @return \Illuminate\View\View
      */
     public function edit(Issue $issue)
     {
-        $projects = Project::all();
-        $tags = Tag::all();
+        $projects = Project::all(); // Lets the user move this issue to a different project.
+        $tags = Tag::all(); // Kept for parity with create(); the tag list itself is managed from the show page, not this form.
 
         return view('issues.edit', compact('issue', 'projects', 'tags'));
     }
 
     /**
-     * Update an existing issue.
+     * Validate and persist changes to an existing issue.
+     *
+     * @param  UpdateIssueRequest  $request  Validates the submitted fields before this method runs.
+     * @param  Issue  $issue  Resolved via route model binding.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(UpdateIssueRequest $request, Issue $issue)
     {
@@ -115,10 +158,18 @@ class IssueController extends Controller
     }
 
     /**
-     * Delete an issue and return to its parent project (comments/pivots cascade-delete).
+     * Delete an issue and return the user to its parent project. The
+     * issue's comments and tag/user pivot rows cascade-delete automatically
+     * via the foreign key constraints defined in the migrations.
+     *
+     * @param  Issue  $issue  Resolved via route model binding.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function destroy(Issue $issue)
     {
+        // Captured before delete() so we still have it for the redirect below
+        // (accessing $issue->project after deletion would still work since the
+        // model instance stays in memory, but grabbing it first keeps intent clear).
         $project = $issue->project;
 
         $issue->delete();
